@@ -35,14 +35,19 @@ export const CloudinaryUtils = {
   // generate signed URL for each format based off public_id
   getUrls(cloudinaryId) {
     return cloudinarySettings.formats.map(format => {
-      const url = Cloudinary.url(cloudinaryId, {
-        width: format.width,
-        height: format.height,
-        crop: 'fill',
-        sign_url: true,
-        fetch_format: 'auto',
-        quality: 'auto'
-      });
+      // Build parameters for cloudinary
+      // everything in format except name + some requirements
+      let params = {};
+      Object(format).keys.forEach(k =>{
+        if(k !== 'name') params[k] = format[k];
+      })
+      // defaults required values
+      params.crop = params.crop || 'fill';
+      params.sign_url = params.sign_url || true;
+      params.fetch_format = params.fetch_format || 'auto';
+      params.quality = params.quality || 'auto';
+
+      const url = Cloudinary.url(cloudinaryId, params);
       return {
         name: format.name,
         url: url
