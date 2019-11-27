@@ -9,7 +9,7 @@ import SimpleSchema from 'simpl-schema';
 Vulcan = {};
 
 // eslint-disable-next-line no-undef
-Vulcan.VERSION = '1.13.3';
+Vulcan.VERSION = '1.14.0';
 
 // ------------------------------------- Schemas -------------------------------- //
 
@@ -41,6 +41,7 @@ SimpleSchema.extendOptions([
   'canUpdate', // who can edit the field
   'editableBy', // who can edit the field (OpenCRUD backwards compatibility)
 
+  'typeName', // the type to resolve the field with
   'resolveAs', // field-level resolver
   'searchable', // whether a field is searchable
   'description', // description/help
