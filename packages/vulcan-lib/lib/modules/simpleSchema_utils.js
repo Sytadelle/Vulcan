@@ -20,9 +20,19 @@ export const hasAllowedValues = field => {
 };
 
 
-export const isBlackbox = (field) => field.type.definitions[0].blackbox;
+export const isArrayChildField = fieldName => fieldName.indexOf('$') !== -1;
+export const isBlackbox = (field) => !!field.type.definitions[0].blackbox;
+//export const isBlackbox = (fieldName, schema) => {
+//    const field = schema[fieldName];
+//    // for array field, check parent recursively to find a blackbox
+//    if (isArrayChildField(fieldName)) {
+//        const parentField = schema[fieldName.slice(0, -2)];
+//        return isBlackbox(parentField);
+//    }
+//    return field.type.definitions[0].blackbox;
+//};
 
-export const getFieldType = field => field.type.singleType;
+export const getFieldType = field => field.type.singleType || field.type[0].type;
 export const getFieldTypeName = fieldType =>
     typeof fieldType === 'object'
         ? 'Object'

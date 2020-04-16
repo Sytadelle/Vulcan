@@ -1,7 +1,7 @@
 Package.describe({
   name: 'vulcan:lib',
   summary: 'Vulcan libraries.',
-  version: '1.14.0',
+  version: '1.14.1',
   git: 'https://github.com/VulcanJS/Vulcan.git',
 });
 
@@ -40,7 +40,7 @@ Package.onUse(function (api) {
     'http',
     'email',
     'random',
-    'apollo@3.0.1',
+    'apollo@3.1.0',
 
     // Third-party packages
 

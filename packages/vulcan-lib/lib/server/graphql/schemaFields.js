@@ -240,9 +240,10 @@ export const getSchemaFields = (schema, typeName) => {
  */
 /* eslint-disable no-console */
 import { isIntlField } from '../../modules/intl.js';
-import { isBlackbox, unarrayfyFieldName, getFieldType, getFieldTypeName, getArrayChild, getNestedSchema } from '../../modules/simpleSchema_utils';
+import { isBlackbox, isArrayChildField, unarrayfyFieldName, getFieldType, getFieldTypeName, getArrayChild, getNestedSchema } from '../../modules/simpleSchema_utils';
 import { shouldAddOriginalField } from '../../modules/schema_utils';
 import relations from './relations.js';
+import { getGraphQLType } from '../../modules/graphql/utils';
 
 const capitalize = word => {
   if (!word) return word;
@@ -254,80 +255,105 @@ const capitalize = word => {
 export const getNestedGraphQLType = (typeName, fieldName, isInput) =>
   `${typeName}${capitalize(unarrayfyFieldName(fieldName))}${isInput ? 'Input' : ''}`;
 
-
-
+// NOTE: now lives in modules/graphql/utils.js so that it can be shared with client
+// TODO: clean up
 // get GraphQL type for a given schema and field name
-export const getGraphQLType = ({ schema, fieldName, typeName, isInput = false }) => {
-  const field = schema[fieldName];
-  if (field.typeName) return field.typeName; // respect typeName provided by user
+// export const getGraphQLType = ({ schema, fieldName, typeName, isInput = false, isParentBlackbox = false }) => {
+//   const field = schema[fieldName];
 
-  const fieldType = getFieldType(field);
-  const fieldTypeName = getFieldTypeName(fieldType);
+//   if (field.typeName) return field.typeName; // respect typeName provided by user
 
-  if (field.isIntlData) {
-    return isInput ? '[IntlValueInput]' : '[IntlValue]';
-  }
+//   const fieldType = getFieldType(field);
+//   const fieldTypeName = getFieldTypeName(fieldType);
 
-  switch (fieldTypeName) {
-    case 'String':
-      /*
-      Getting Enums from allowed values is counter productive because enums syntax is limited
-      @see https://github.com/VulcanJS/Vulcan/issues/2332
-      if (hasAllowedValues(field) && isValidEnum(getAllowedValues(field))) {
-        return getEnumType(typeName, fieldName);
-      }*/
-      return 'String';
+//   // NOTE: we DON't USE isInputField! we don't want to match "field.intl", only "field.intlData"
+//   /**
+//    * Expected GraphQL Schema:
+//    * 
+//    *   # The room name
+//   * name(locale: String): String @intl
+//   * # The room name
+//   * name_intl(locale: String): [IntlValue] @intl
+//   * 
+//   * JS schema:
+//   * 
+//   * name: {
+//   *   type: String,
+//   *   optional: false,
+//   *   canRead: ['guests'],
+//   *   canCreate: ['admins'],
+//   *   intl: true,
+//   * },
+//    */
+//   if (field.isIntlData) {
+//     return isInput ? '[IntlValueInput]' : '[IntlValue]';
+//   }
 
-    case 'Boolean':
-      return 'Boolean';
+//   switch (fieldTypeName) {
+//     case 'String':
+//       /*
+//       Getting Enums from allowed values is counter productive because enums syntax is limited
+//       @see https://github.com/VulcanJS/Vulcan/issues/2332
+//       if (hasAllowedValues(field) && isValidEnum(getAllowedValues(field))) {
+//         return getEnumType(typeName, fieldName);
+//       }*/
+//       return 'String';
 
-    case 'Number':
-      return 'Float';
+//     case 'Boolean':
+//       return 'Boolean';
 
-    case 'SimpleSchema.Integer':
-      return 'Int';
+//     case 'Number':
+//       return 'Float';
 
-    // for arrays, look for type of associated schema field or default to [String]
-    case 'Array':
-      const arrayItemFieldName = `${fieldName}.$`;
-      // note: make sure field has an associated array
-      if (schema[arrayItemFieldName]) {
-        // try to get array type from associated array
-        const arrayItemType = getGraphQLType({
-          schema,
-          fieldName: arrayItemFieldName,
-          typeName,
-          isInput,
-        });
-        return arrayItemType ? `[${arrayItemType}]` : null;
-      }
-      return null;
+//     case 'SimpleSchema.Integer':
+//       return 'Int';
 
-    case 'Object':
-      // 3 cases: it's a nested Schema, a referenced schema, or an actual JSON
-      if (!isBlackbox(field) && fieldType._schema) {
-        return getNestedGraphQLType(typeName, fieldName, isInput);
-      }
-      // referenced Schema
-      if (/*field.type.definitions[0].blackbox && */field.typeName && field.typeName !== 'JSON') {
-        return isInput ? field.typeName + 'Input' : field.typeName;
-      }
-      // blackbox JSON object
-      return 'JSON';
-    case 'Date':
-      return 'Date';
+//     // for arrays, look for type of associated schema field or default to [String]
+//     case 'Array':
+//       const arrayItemFieldName = `${fieldName}.$`;
+//       // note: make sure field has an associated array
+//       if (schema[arrayItemFieldName]) {
+//         // try to get array type from associated array
+//         const arrayItemType = getGraphQLType({
+//           schema,
+//           fieldName: arrayItemFieldName,
+//           typeName,
+//           isInput,
+//           isParentBlackbox: isParentBlackbox || isBlackbox(field) // blackbox field may not be nested items
+//         });
+//         return arrayItemType ? `[${arrayItemType}]` : null;
+//       }
+//       return null;
 
-    default:
-      return null;
-  }
-};
+//     case 'Object':
+//       // 4 cases: 
+//       // - it's the child of a blackboxed array  => will be blackbox JSON
+//       // - a nested Schema, 
+//       // - a referenced schema, or an actual JSON
+//       if (isParentBlackbox) return 'JSON';
+//       if (!isBlackbox(field) && fieldType._schema) {
+//         return getNestedGraphQLType(typeName, fieldName, isInput);
+//       }
+
+//       // referenced Schema
+//       if (/*field.type.definitions[0].blackbox && */field.typeName && field.typeName !== 'JSON') {
+//         return isInput ? field.typeName + 'Input' : field.typeName;
+//       }
+//       // blackbox JSON object
+//       return 'JSON';
+//     case 'Date':
+//       return 'Date';
+
+//     default:
+//       return null;
+//   }
+// };
 
 //const isObject = field => getFieldTypeName(getFieldType(field));
 const hasTypeName = field => !!(field || {}).typeName;
 
 const hasNestedSchema = field => !!getNestedSchema(field);
 
-const isArrayChildField = fieldName => fieldName.indexOf('$') !== -1;
 const hasArrayChild = (fieldName, schema) => !!getArrayChild(fieldName, schema);
 
 const getArrayChildSchema = (fieldName, schema) => {
@@ -563,7 +589,7 @@ export const getSchemaFields = (schema, typeName) => {
       hasArrayNestedChild(fieldName, schema) && hasNestedSchema(getArrayChild(fieldName, schema)) && !isIntlField(field);
     const isReferencedObject = hasTypeName(field);
     const isReferencedArray = hasTypeName(getArrayChild(fieldName, schema));
-    const hasNesting = isNestedArray || isNestedObject || isReferencedObject || isReferencedArray;
+    const hasNesting = !isBlackbox(field) && (isNestedArray || isNestedObject || isReferencedObject || isReferencedArray);
 
     // only include fields that are viewable/insertable/editable and don't contain "$" in their name
     // note: insertable/editable fields must be included in main schema in case they're returned by a mutation

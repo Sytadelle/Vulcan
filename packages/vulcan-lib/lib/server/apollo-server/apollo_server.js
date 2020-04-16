@@ -5,13 +5,15 @@
 
 // Meteor WebApp use a Connect server, so we need to
 // use apollo-server-express integration
-//import express from 'express';
+// We also add Express to WebApp in order to use any kind of middlewares
+import express from 'express';
 import { ApolloServer } from 'apollo-server-express';
 
 import { Meteor } from 'meteor/meteor';
 
 import { WebApp } from 'meteor/webapp';
-import bodyParser from 'body-parser';
+import _get from 'lodash/get';
+import { bodyParserGraphQL } from 'body-parser-graphql';
 
 // import cookiesMiddleware from 'universal-cookie-express';
 // import Cookies from 'universal-cookie';
@@ -46,23 +48,27 @@ export const setupGraphQLMiddlewares = (apolloServer, config, apolloApplyMiddlew
 
   // WebApp.connectHandlers is a connect server
   // you can add middlware as usual when using Express/Connect
-
+  // Use the Express app instead of just Node connect (allow better middleware chaining)
+  const app = express();
   // parse cookies and assign req.universalCookies object
-  WebApp.connectHandlers.use(universalCookiesMiddleware());
-
+  app.use(universalCookiesMiddleware());
   // parse request (order matters)
-  WebApp.connectHandlers.use(
-    config.path,
-    bodyParser.json({ limit: getSetting('apolloServer.jsonParserOptions.limit') })
-  );
-  WebApp.connectHandlers.use(config.path, bodyParser.text({ type: 'application/graphql' }));
 
+  app.use(
+    config.path,
+    // won't handle graphql
+    //bodyParser.json({ limit: getSetting('apolloServer.jsonParserOptions.limit') })
+    bodyParserGraphQL({ limit: getSetting('apolloServer.jsonParserOptions.limit') })
+  );
+
+  //WebApp.connectHandlers.use(config.path, bodyParser.text({ type: 'application/graphql' }));
+  WebApp.connectHandlers.use(app);
 
   // enhance webapp
   runCallbacks({
     name: 'graphql.middlewares.setup',
     iterator: WebApp,
-    properties: {}
+    properties: {},
   });
 
   // Provide the Meteor WebApp Connect server instance to Apollo
@@ -90,6 +96,34 @@ export const setupToolsMiddlewares = config => {
   WebApp.connectHandlers.use(config.voyagerPath, voyagerMiddleware(getVoyagerConfig(config)));
   // Setup GraphiQL
   WebApp.connectHandlers.use(config.graphiqlPath, graphiqlMiddleware(getGraphiqlConfig(config)));
+};
+
+/**
+ *  setup CORS
+ *  @see https://expressjs.com/en/resources/middleware/cors.html
+ *  @see https://www.apollographql.com/docs/apollo-server/api/apollo-server/#apolloserver
+ *  In Apollo, default cors is defined in packages/apollo-server/src/index.ts, it's too permissive so we use "false" in production
+ */
+const getCorsOptions = () => {
+  // enable all cors
+  const enableAllcors = _get(Meteor.settings, 'apolloServer.corsEnableAll', false);
+  if (enableAllcors) return true; // will allow all distant queries DANGEROUS
+  // enable only a whitelist or nothing
+  const corsWhitelist = _get(Meteor.settings, 'apolloServer.corsWhitelist', []);
+  const corsOptions =
+    corsWhitelist && corsWhitelist.length
+      ? {
+          origin: function(origin, callback) {
+            if (!origin) callback(null, true); // same origin
+            if (corsWhitelist.indexOf(origin) !== -1) {
+              callback(null, true);
+            } else {
+              callback(new Error('Not allowed by CORS'));
+            }
+          },
+        }
+      : process.env.NODE_ENV === 'development'; // default behaviour is activating all in dev, deactivating all in production
+  return corsOptions;
 };
 
 /**
@@ -122,17 +156,19 @@ export const onStart = () => {
   const config = {
     path: '/graphql',
     maxAccountsCacheSizeInMB: 1,
-    configServer: apolloServer => { },
+    configServer: apolloServer => {},
     voyagerPath: '/graphql-voyager',
     graphiqlPath: '/graphiql',
     // customConfigFromReq
   };
+  const corsOptions = getCorsOptions();
   const apolloApplyMiddlewareOptions = {
     // @see https://github.com/meteor/meteor/blob/master/packages/webapp/webapp_server.js
     // @see https://www.apollographql.com/docs/apollo-server/api/apollo-server.html#Parameters-2
     bodyParser: false, // added manually later
     path: config.path,
     app: WebApp.connectHandlers,
+    cors: corsOptions,
     ...getApolloApplyMiddlewareOptions(),
   };
   // init context
@@ -144,6 +180,7 @@ export const onStart = () => {
 
   // define executableSchema
   initGraphQL();
+
   // create server
   const apolloServer = createApolloServer({
     config,
@@ -169,4 +206,5 @@ export const onStart = () => {
   if (!disableSSR) {
     enableSSR({ computeContext: context });
   }
+  return apolloServer;
 };

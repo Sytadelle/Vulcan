@@ -19,6 +19,9 @@ import '../components/forms/StaticText.jsx';
 import '../components/forms/Textarea.jsx';
 import '../components/forms/Time.jsx';
 import '../components/forms/Url.jsx';
+import '../components/forms/Likert.jsx';
+import '../components/forms/Autocomplete.jsx';
+import '../components/forms/AutocompleteMultiple.jsx';
 
 import '../components/ui/Button.jsx';
 import '../components/ui/Alert.jsx';
@@ -27,3 +30,8 @@ import '../components/ui/ModalTrigger.jsx';
 import '../components/ui/TooltipTrigger.jsx';
 import '../components/ui/Dropdown.jsx';
 import '../components/ui/Table.jsx';
+import '../components/ui/VerticalNavigation.jsx';
+
+import '../components/backoffice/BackofficeNavbar.jsx';
+import '../components/backoffice/BackofficeVerticalMenuLayout.jsx';
+import '../components/backoffice/BackofficePageLayout.jsx';
