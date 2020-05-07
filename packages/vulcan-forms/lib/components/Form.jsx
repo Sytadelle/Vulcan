@@ -915,6 +915,11 @@ class SmartForm extends Component {
   submitForm = async event => {
     event && event.preventDefault();
 
+    // Check event.target.id is equal to this.props.id
+    if(this.props.id !== event.target.id) {
+      return;
+    }
+
     // if form is disabled (there is already a submit handler running) don't do anything
     if (this.state.disabled) {
       return;
@@ -984,6 +989,7 @@ class SmartForm extends Component {
   // --------------------------------------------------------------------- //
   // ------------------------- Props to Pass ----------------------------- //
   // --------------------------------------------------------------------- //
+  genId = () => Math.random().toString(36).substr(2, 9) + Math.random().toString(36).substr(2, 9);
 
   getFormProps = () => {
     const docClassName = `document-${this.getFormType()}`;
@@ -991,7 +997,7 @@ class SmartForm extends Component {
 
     return {
       className: `${docClassName} ${docClassName}-${typeName}`,
-      id: this.props.id,
+      id: this.props.id ? this.props.id : this.genId(),
       onSubmit: this.submitForm,
       ref: e => {
         this.form = e;
