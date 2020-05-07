@@ -195,6 +195,7 @@ div.ReactTags__suggestions mark{
 }
 
 .form-component-clear{
+  cursor: pointer;
   position: absolute;
   top: 11px;
   right: 0px;
@@ -261,6 +262,12 @@ div.ReactTags__suggestions mark{
   }
 }
 
+.form-component-radiogroup{
+  .col-sm-9{
+    padding-top: calc(.375rem + 1px);
+  }
+}
+
 .avatar {
   border-radius: 50%;
   overflow: hidden;
@@ -318,4 +325,22 @@ div.ReactTags__suggestions mark{
   & img {
     width: 100%;
   }
+}
+
+.form-input-loading{
+  position: relative;
+}
+.form-input-loading-isLoading{
+  pointer-events: none;
+}
+.form-input-loading-loader{
+  background: rgba(0,0,0,.05);
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
