@@ -916,7 +916,7 @@ class SmartForm extends Component {
     event && event.preventDefault();
 
     // Check event.target.id is equal to this.props.id
-    if(this.props.id !== event.target.id) {
+    if(this.props.id && this.props.id !== event.target.id) {
       return;
     }
 
@@ -989,15 +989,13 @@ class SmartForm extends Component {
   // --------------------------------------------------------------------- //
   // ------------------------- Props to Pass ----------------------------- //
   // --------------------------------------------------------------------- //
-  genId = () => Math.random().toString(36).substr(2, 9) + Math.random().toString(36).substr(2, 9);
-
   getFormProps = () => {
     const docClassName = `document-${this.getFormType()}`;
     const typeName = this.props.typeName.toLowerCase();
 
     return {
       className: `${docClassName} ${docClassName}-${typeName}`,
-      id: this.props.id ? this.props.id : this.genId(),
+      id: this.props.id,
       onSubmit: this.submitForm,
       ref: e => {
         this.form = e;
